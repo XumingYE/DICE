@@ -1,22 +1,16 @@
-/**
- * 
- * 2024.10.28 修改，使用gear hash + limited hash width
- */
+#include <iostream>
 #include <tuple>
 #include <limits>
 #include <map>
 #include <vector>
 #include <algorithm>
+#include <sstream>
 #include <functional>
 #include <random>
+#include "MurmurHash3.h"
 #include "../xxhash.h"
-#include "../fastcdc/fastcdc.h"
 
 // finesse
-typedef uint32_t feature_t;
-typedef uint32_t superfeature_t;
-
-
 
 class Finesse {
 	private:
@@ -26,15 +20,17 @@ class Finesse {
 	int BLOCK_SIZE, window;
 	int SF_NUM, FEATURE_NUM;
 
+	uint32_t* TRANSPOSE_M;
+	uint32_t* TRANSPOSE_A;
 	int* subchunkIndex;
 
-	const feature_t A = 37, MOD = 1000000007;
-	feature_t Apower = 1;
+	const uint32_t A = 37, MOD = 1000000007;
+	uint64_t Apower = 1;
 
-	feature_t* feature;
-	superfeature_t* superfeature;
+	uint32_t* feature;
+	uint64_t* superfeature;
 
-	std::map<superfeature_t, std::vector<int>>* sfTable;
+	std::map<uint64_t, std::vector<int>>* sfTable;
 	// std::vector< std::pair< std::vector<uint64_t>, int> > sfTable;
 	public:
 	Finesse(int _BLOCK_SIZE, int _W, int _SF_NUM, int _FEATURE_NUM) {
@@ -47,19 +43,29 @@ class Finesse {
 		SF_NUM = _SF_NUM;
 		FEATURE_NUM = _FEATURE_NUM;
 
-		feature = new feature_t[FEATURE_NUM];
-		superfeature = new superfeature_t[SF_NUM];
+		TRANSPOSE_M = new uint32_t[FEATURE_NUM];
+		TRANSPOSE_A = new uint32_t[FEATURE_NUM];
+
+		feature = new uint32_t[FEATURE_NUM];
+		superfeature = new uint64_t[SF_NUM];
 		subchunkIndex = new int[FEATURE_NUM + 1];
 		subchunkIndex[0] = 0;
 		
-		sfTable = new std::map<superfeature_t, std::vector<int>>[SF_NUM];
 
+		sfTable = new std::map<uint64_t, std::vector<int>>[SF_NUM];
+
+		for (int i = 0; i < FEATURE_NUM; ++i) {
+			TRANSPOSE_M[i] = ((full_uint32_t(gen1) >> 1) << 1) + 1;
+			TRANSPOSE_A[i] = full_uint32_t(gen1);
+		}
 		for (int i = 0; i < window - 1; ++i) {
 			Apower *= A;
 			Apower %= MOD;
 		}
 	}
 	~Finesse() {
+		delete[] TRANSPOSE_M;
+		delete[] TRANSPOSE_A;
 		delete[] feature;
 		delete[] superfeature;
 		delete[] subchunkIndex;
@@ -76,9 +82,8 @@ int Finesse::request(unsigned char* ptr, int size) {
 		subchunkIndex[i + 1] = (size * (i + 1)) / FEATURE_NUM;
 	}
 
-	// 下面是原版的finesse实现
 	// for (int i = 0; i < FEATURE_NUM; ++i) {
-	// 	feature_t fp = 0;
+	// 	int64_t fp = 0;
 
 	// 	for (int j = subchunkIndex[i]; j < subchunkIndex[i] + window; ++j) {
 	// 		fp *= A;
@@ -99,49 +104,38 @@ int Finesse::request(unsigned char* ptr, int size) {
 	// 	}
 	// }
 
-	// 下面是gear hash的实现
-	int byte_shift = 2;
 	for (int i = 0; i < FEATURE_NUM; ++i) {
-		for (int j = subchunkIndex[i]; j < subchunkIndex[i + 1]; ++j) {
-			uint64_t fp = 0;
-			fp = (fp << byte_shift) + (GEARv2[ptr[j]]);
+		uint32_t fp = 0;
+		uint32_t seed = 2024;
+		// uint32_t out;
+		for (int j = subchunkIndex[i]; j < subchunkIndex[i + 1] - window; ++j) {
+			MurmurHash3_x86_32(ptr + j, window, seed, &fp);
 			if (fp > feature[i]) feature[i] = fp;
 		}
 	}
 
-	for (int i = 0; i < FEATURE_NUM / SF_NUM; ++i) {
-		std::sort(feature + i * SF_NUM, feature + (i + 1) * SF_NUM);
+	for (int i = 0; i < FEATURE_NUM - 1; ++i) {
+		superfeature[i] = std::max(feature[i], feature[i + 1]);
 	}
 
-	// std::cout << "[";
-    // for (size_t i = 0; i < FEATURE_NUM; ++i) {
-    //     std::cout << feature[i];
-    //     if (i != FEATURE_NUM - 1) {
-    //         std::cout << ", ";
-    //     }
-    // }
-    // std::cout << "]" << std::endl;
+	
 
+	// for (int i = 0; i < FEATURE_NUM / SF_NUM; ++i) {
+	// 	std::sort(feature + i * SF_NUM, feature + (i + 1) * SF_NUM);
+	// }
 
+	// for (int i = 0; i < SF_NUM; ++i) {
+	// 	uint64_t temp[FEATURE_NUM / SF_NUM];
+	// 	for (int j = 0; j < FEATURE_NUM / SF_NUM; ++j) {
+	// 		temp[j] = feature[j * SF_NUM + i];
+	// 	}
+	// 	superfeature[i] = XXH64(temp, sizeof(uint64_t) * FEATURE_NUM / SF_NUM, 0);
+	// 	// superfeature[i] = XXH32(temp, sizeof(uint32_t) * FEATURE_NUM / SF_NUM, 0);
+	// }
+
+	uint32_t r = full_uint32_t(gen2) % SF_NUM;
 	for (int i = 0; i < SF_NUM; ++i) {
-		feature_t temp[FEATURE_NUM / SF_NUM];
-		for (int j = 0; j < FEATURE_NUM / SF_NUM; ++j) {
-			temp[j] = feature[j * SF_NUM + i];
-		}
-		superfeature[i] = XXH32(temp, sizeof(feature_t) * FEATURE_NUM / SF_NUM, 0);
-	}
-
-	// std::cout << "[";
-    // for (size_t i = 0; i < SF_NUM; ++i) {
-    //     std::cout << superfeature[i];
-    //     if (i != SF_NUM - 1) {
-    //         std::cout << ", ";
-    //     }
-    // }
-    // std::cout << "]" << std::endl;
-
-	// uint32_t r = full_uint32_t(gen2) % SF_NUM;
-	for (int index = 0; index < SF_NUM; ++index) {
+		int index = (r + i) % SF_NUM;
 		for (int j = 0; j < SF_NUM; ++j) {
 			if (sfTable[index].count(superfeature[j])) {
 				return sfTable[index][superfeature[j]].back();
@@ -177,7 +171,18 @@ int Finesse::request(unsigned char* ptr, int size) {
 // }
 
 void Finesse::insert(int label) {
-	for (int i = 0; i < SF_NUM; ++i) {
+	int i;
+	// std::cout << "[";
+	// for (int j = 0; j < FEATURE_NUM; ++j) {
+	// 	std::cout << feature[j] << ", ";
+	// }
+	// std::cout << "]" << std::endl;
+	// std::ostringstream oss;
+	// oss << "[";
+	for (i = 0; i < SF_NUM; ++i) {
+		// oss << superfeature[i] << ", ";
 		sfTable[i][superfeature[i]].push_back(label);
 	}
+	// oss << "]";
+	// std::cout << oss.str() << std::endl;
 }

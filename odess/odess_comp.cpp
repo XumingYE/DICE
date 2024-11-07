@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
 		cerr << "usage: ./lsh_inf [input_file] [window_size] [SF_NUM] [FEATURE_NUM] [average_chunk_size]\n";
 		exit(0);
 	}
-	int W = atoi(argv[2]);
+	int window = atoi(argv[2]);
 	int SF_NUM = atoi(argv[3]);
 	int FEATURE_NUM = atoi(argv[4]);
 
@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
 	f.read_file(AVG_CHUNK_SIZE);
 
 	map<XXH64_hash_t, int> dedup;
-	Odess lsh(BLOCK_SIZE, W, SF_NUM, FEATURE_NUM); // parameter
+	Odess lsh(BLOCK_SIZE, window, SF_NUM, FEATURE_NUM); // parameter
 
 	unsigned long long total = 0;
 	unsigned long long total_non_duplicated = 0;
@@ -49,9 +49,21 @@ int main(int argc, char* argv[]) {
 	int no_delta_chunks = 0;
 	int error_chunks = 0;
 
-	char compressed[4 * AVG_CHUNK_SIZE];
-	char delta_compressed[4 * AVG_CHUNK_SIZE];
+	unsigned char delta_compressed[32 * AVG_CHUNK_SIZE];
 	long long time_cost = 0;
+
+	/* Reset Xdelta3 with no secondary compression*/
+	xd3_config config;
+    memset(&config, 0, sizeof(config));
+
+    // 设置配置参数，禁用内置压缩和二次压缩
+    config.flags |= XD3_NOCOMPRESS;   // 禁用内置的普通压缩算法
+    // config.flags |= XD3_SEC_NOALL;    // 禁用二次压缩的所有部分
+	config.flags |= XD3_COMPLEVEL_9;
+
+    // 确保未启用任何二次压缩算法
+    config.flags &= ~(XD3_SEC_DJW | XD3_SEC_FGK | XD3_SEC_LZMA);
+
 	// f.time_check_start();
 	for (int i = 0; i < f.N; ++i) {
 		XXH64_hash_t h = XXH64(f.trace[i].data, f.trace[i].size, 0);
@@ -63,14 +75,19 @@ int main(int argc, char* argv[]) {
 		total_non_duplicated += f.trace[i].size;
 		
 		dedup[h] = i;
-		int dcomp_lsh = INF, dcomp_lsh_ref;
+		int dcomp_lsh_ref;
+		usize_t dcomp_lsh = INF;
 
 		f.time_check_start();
 		dcomp_lsh_ref = lsh.request((unsigned char*)f.trace[i].data, f.trace[i].size);
 		time_cost += f.time_check_end();
 
 		if (dcomp_lsh_ref != -1) {
-			dcomp_lsh = xdelta3_compress((char *)f.trace[i].data, f.trace[i].size, (char *)f.trace[dcomp_lsh_ref].data, f.trace[dcomp_lsh_ref].size, delta_compressed, 1);
+			int ret = xd3_encode_memory(f.trace[i].data, f.trace[i].size, f.trace[dcomp_lsh_ref].data, f.trace[dcomp_lsh_ref].size, delta_compressed, &dcomp_lsh, sizeof(delta_compressed), config.flags);
+
+			if (ret != 0){
+				fprintf(stderr, "xdelta3 encode error! ret=%d\tallocate_space=%lu\n", ret, sizeof(delta_compressed));
+			}
 			if (dcomp_lsh > f.trace[i].size) 
 				error_chunks++;
 		}
@@ -90,7 +107,7 @@ int main(int argc, char* argv[]) {
 	printf("Trace: %s\n", argv[1]);
 	cout <<"Avg chunk size: " << AVG_CHUNK_SIZE << "us\n";
 	cout <<"Total time: " << time_cost << "us\n";
-	printf("LSH: Odess, W = %d, SF = %d, feature = %d\n", W, SF_NUM, FEATURE_NUM);
+	printf("LSH: Odess, W = %d, SF = %d, feature = %d\n", window, SF_NUM, FEATURE_NUM);
 	printf("Total      Chunks: %d\n", f.N);
 	printf("Duplicated Chunks: %d\n", f.N - delta_chunks - no_delta_chunks);
 	printf("Base       Chunks: %d\n", no_delta_chunks);

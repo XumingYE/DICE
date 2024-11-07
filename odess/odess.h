@@ -8,14 +8,14 @@
 #include "../xxhash.h"
 #include "../fastcdc/fastcdc.h"
 
-// finesse
+
 
 class Odess {
 	private:
 	std::mt19937 gen1, gen2;
 	std::uniform_int_distribution<uint32_t> full_uint32_t;
 
-	int BLOCK_SIZE, W;
+	int BLOCK_SIZE, WINDOW;
 	int SF_NUM, FEATURE_NUM;
 
 	uint32_t* TRANSPOSE_M;
@@ -39,7 +39,7 @@ class Odess {
 
 		mask = 0x00000007f0000000; // 0x00000007f0000000
 		BLOCK_SIZE = _BLOCK_SIZE;
-		W = _W;
+		WINDOW = _W;
 		SF_NUM = _SF_NUM;
 		FEATURE_NUM = _FEATURE_NUM;
 
@@ -55,7 +55,7 @@ class Odess {
 			TRANSPOSE_M[i] = ((full_uint32_t(gen1) >> 1) << 1) + 1;
 			TRANSPOSE_A[i] = full_uint32_t(gen1);
 		}
-		for (int i = 0; i < W - 1; ++i) {
+		for (int i = 0; i < WINDOW - 1; ++i) {
 			Apower *= A;
 			Apower %= MOD;
 		}
@@ -85,6 +85,7 @@ int Odess::request(unsigned char* ptr, int size) {
 		// if (fp > feature[i]) feature[i] = fp;
         
         if ((fp & mask) == 0) {  // 检查掩码条件 & | ~
+			// std::cout << m << " ";
 			count ++;
             for (int i = 0; i < FEATURE_NUM; ++i) {
                 uint32_t Transform = (TRANSPOSE_M[i] * fp + TRANSPOSE_A[i]) % (1UL << 32);  // 计算变换
@@ -95,7 +96,8 @@ int Odess::request(unsigned char* ptr, int size) {
         }
     }
 
-	// std::cout << "count= " << count << std::endl;
+
+	// std::cout << "\ncount= " << count << std::endl;
 	
 
 	for (int i = 0; i < SF_NUM; ++i) {
@@ -106,27 +108,13 @@ int Odess::request(unsigned char* ptr, int size) {
 		superfeature[i] = XXH64(temp, sizeof(uint64_t) * FEATURE_NUM / SF_NUM, 0);
 	}
 
-	// uint32_t r = full_uint32_t(gen2) % SF_NUM;
-	// for (int i = 0; i < SF_NUM; ++i) {
-	// 	int index = (r + i) % SF_NUM;
-	// 	for (int j = 0; j < SF_NUM; ++j) {
-	// 		if (sfTable[index].count(superfeature[j])) {
-	// 			return sfTable[index][superfeature[j]].back();
-	// 		}
-	// 	}
-	// }
-
-    // for (const auto& item : sfTable) {
-    //     const auto& item_superfeatures = item.first;
-        
-    //     // 检查是否有任何一个 superfeature 匹配
-    //     for (const auto& sf : item_superfeatures) {
-	// 		for( int i = 0; i < SF_NUM; ++i )
-	// 			if (sf == superfeature[i]) {
-	// 				return item.second;  // 返回匹配项的编号
-	// 			}
-    //     }
-    // }
+	for (int index = 0; index < SF_NUM; ++index) {
+		for (int j = 0; j < SF_NUM; ++j) {
+			if (sfTable[index].count(superfeature[j])) {
+				return sfTable[index][superfeature[j]].back();
+			}
+		}
+	}
 
 	return -1;
 }
@@ -137,13 +125,13 @@ int Odess::request(unsigned char* ptr, int size) {
 
 // 	int64_t fp = 0;
 
-// 	for(int j = 0; j < W; ++j){
+// 	for(int j = 0; j < WINDOW; ++j){
 // 		fp *= A;
 // 		fp += (unsigned char)ptr[j]; // 计算滚动哈希
 // 		fp %= MOD;
 // 	}
 
-// 	for (int m = 0; m < size - W + 1; ++m) {
+// 	for (int m = 0; m < size - WINDOW + 1; ++m) {
 		
 // 		// if (fp > feature[i]) feature[i] = fp;
         
@@ -158,9 +146,9 @@ int Odess::request(unsigned char* ptr, int size) {
 
 // 		fp -= (ptr[m] * Apower) % MOD;
 // 		while (fp < 0) fp += MOD;
-// 		if (m != size - W) {
+// 		if (m != size - WINDOW) {
 // 			fp *= A;
-// 			fp += ptr[m + W];
+// 			fp += ptr[m + WINDOW];
 // 			fp %= MOD;
 // 		}
 //     }

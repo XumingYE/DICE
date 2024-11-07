@@ -1,5 +1,5 @@
 /**
- * 使用欧几里得距离计算
+ * 使用cos来计算
  * 
  */
 
@@ -94,8 +94,8 @@ class DICE {
 
 	// Annoy
 	int max_elements;
-    hnswlib::L2Space space;
-    // hnswlib::InnerProductSpace space;
+    // hnswlib::L2Space space;
+    hnswlib::InnerProductSpace space;
     hnswlib::HierarchicalNSW<float>* alg_hnsw;
 
 	// Byte Slice Structure
@@ -177,32 +177,32 @@ int DICE::request(unsigned char *ptr, int chunk_size) {
     avg_embedding = get_embedding(ptr, chunk_size);
     // avg_embedding = arma::normalise(avg_embedding);
     // std::cout << "embedding=" << avg_embedding << std::endl;
-    float dist = 999.9;
+    double cos_sim = -1;
 	int ret = -1;
 
-    if (linear.size() > 0)
-        for (int i = linear.size() - 1; i >= 0; --i) {
-            float nowdist = euclidean_distance(linear[i].second, avg_embedding);
-            // std::cout << "Linear Index: " << linear[i].first << ", Distance: " << nowdist << "\n vector = "<< linear[i].second << std::endl;
-            if (dist > nowdist) {
-                dist = nowdist;
-                ret = linear[i].first;
-            }
-        }
+    // if (linear.size() > 0)
+    //     for (int i = linear.size() - 1; i >= 0; --i) {
+    //         double nowdist = euclidean_distance(linear[i].second, avg_embedding);
+    //         // std::cout << "Linear Index: " << linear[i].first << ", Distance: " << nowdist << "\n vector = "<< linear[i].second << std::endl;
+    //         if (dist > nowdist) {
+    //             dist = nowdist;
+    //             ret = linear[i].first;
+    //         }
+    //     }
 
     if (alg_hnsw->cur_element_count > 0) {
         std::priority_queue<std::pair<float, size_t>> result = alg_hnsw->searchKnn(avg_embedding.memptr(), 1);
 
-        float ret_dist = std::sqrt(result.top().first);
+        double ret_sim = result.top().first;
         // std::cout << ret_sim << std::endl;
-        if (ret_dist < dist) {
-            ret_dist = dist;
+        if (ret_sim > cos_sim) {
+            cos_sim = ret_sim;
             ret = result.top().second;
             // std::cout << "Shot:" << cos_sim << std::endl;
         }
     }
 
-    if (dist <= THRESHOLD) return ret;
+    if (cos_sim >= THRESHOLD) return ret;
 	else return -1;
     // 这里返回 -1 仅作为示例，实际你可能需要返回向量或其他信息
 }

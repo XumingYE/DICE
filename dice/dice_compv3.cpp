@@ -16,6 +16,14 @@
 #define INF 987654321
 using namespace std;
 
+int print_data(const uint8_t *data, size_t size) {
+    printf("Data (first 20 bytes): ");
+    for (size_t i = 0; i < size && i < 20; i++) {
+        printf("%02X ", data[i]);
+    }
+    printf("\n");
+    return 0;
+}
 
 int main(int argc, char* argv[]) {
 
@@ -39,9 +47,21 @@ int main(int argc, char* argv[]) {
 	int delta_chunks = 0;
 	int no_delta_chunks = 0;
 	int error_chunks = 0;
-	char compressed[4 * AVG_CHUNK_SIZE];
-	char delta_compressed[4 * AVG_CHUNK_SIZE];
+	unsigned char delta_compressed[32 * AVG_CHUNK_SIZE];
 	long long time_cost = 0;
+
+	/* Reset Xdelta3 with no secondary compression*/
+	xd3_config config;
+    memset(&config, 0, sizeof(config));
+
+    // 设置配置参数，禁用内置压缩和二次压缩
+    config.flags |= XD3_NOCOMPRESS;   // 禁用内置的普通压缩算法
+    // config.flags |= XD3_SEC_NOALL;    // 禁用二次压缩的所有部分
+	config.flags |= XD3_COMPLEVEL_9;
+
+    // 确保未启用任何二次压缩算法
+    config.flags &= ~(XD3_SEC_DJW | XD3_SEC_FGK | XD3_SEC_LZMA);
+
 	// f.time_check_start();
 	auto start = std::chrono::high_resolution_clock::now();
 	for (int i = 0; i < f.N; ++i) {
@@ -54,14 +74,30 @@ int main(int argc, char* argv[]) {
 		total_non_duplicated += f.trace[i].size;
 
 		int dcomp_ann_ref;
-		int dcomp_ann = INF;
+		usize_t dcomp_ann = INF;
 
 		f.time_check_start();
 		dcomp_ann_ref = dice.request(f.trace[i].data, f.trace[i].size);
 		time_cost += f.time_check_end();
-
+		int output_size = -1;
+		
 		if (dcomp_ann_ref != -1) {
-			dcomp_ann = xdelta3_compress((char *)f.trace[i].data, f.trace[i].size, (char *)f.trace[dcomp_ann_ref].data, f.trace[dcomp_ann_ref].size, delta_compressed, 1);
+			
+			int ret = xd3_encode_memory(f.trace[i].data, f.trace[i].size, f.trace[dcomp_ann_ref].data, f.trace[dcomp_ann_ref].size, delta_compressed, &dcomp_ann, sizeof(delta_compressed), config.flags);
+
+			if (ret != 0){
+				fprintf(stderr, "xdelta3 encode error! ret=%d\tallocate_space=%lu\n", ret, sizeof(delta_compressed));
+				fprintf(stderr, "Input Data: \n");
+				print_data(f.trace[i].data, f.trace[i].size);
+				fprintf(stderr, "Source Data: \n");
+				print_data(f.trace[dcomp_ann_ref].data, f.trace[dcomp_ann_ref].size);
+				fprintf(stderr, "Delta Compressed Size: %lu\n", sizeof(delta_compressed));
+				fprintf(stderr, "Compression Level: %d\n", xd3_flags::XD3_COMPLEVEL_9);
+				// fprintf(stderr, "xdelta3 encode error! ret=%d\tallocate_space=%lu", ret, sizeof(delta_compressed));
+				// return -1;  // 或其它错误处理
+			}
+
+			// dcomp_ann = xdelta3_compress((char *)f.trace[i].data, f.trace[i].size, (char *)f.trace[dcomp_ann_ref].data, f.trace[dcomp_ann_ref].size, delta_compressed, 1);
 
 			if (dcomp_ann > f.trace[i].size) 
 				error_chunks++;

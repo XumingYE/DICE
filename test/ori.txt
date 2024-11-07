@@ -1,0 +1,119 @@
+#0  search_indexed_tlist_for_var (var=0x7f44dd70a6a0, itlist=0x7f44dd7e29a8, newvarno=65002, rtoffset=0)
+at setrefs.cpp:1878
+#1  0x0000000001470b8e in fix_upper_expr_mutator (node=0x7f44dd70a6a0, context=0x7f44dfec9920) at setrefs.cpp:2176
+#2  0x0000000000aec920 in expression_tree_mutator (node=0x7f44dd70a550, 
+    mutator=0x1470b25 <fix_upper_expr_mutator(Node*, fix_upper_expr_context*)>, context=0x7f44dfec9920, isCopy=true)
+    at nodeFuncs.cpp:2722
+#3  0x0000000001470cdd in fix_upper_expr_mutator (node=0x7f44dd70a550, context=0x7f44dfec9920) at setrefs.cpp:2203
+#4  0x0000000000aed108 in expression_tree_mutator (node=0x7f44dd70a4e8, 
+    mutator=0x1470b25 <fix_upper_expr_mutator(Node*, fix_upper_expr_context*)>, context=0x7f44dfec9920, isCopy=true)
+    at nodeFuncs.cpp:2783
+#5  0x0000000001470cdd in fix_upper_expr_mutator (node=0x7f44dd70a4e8, context=0x7f44dfec9920) at setrefs.cpp:2203
+#6  0x0000000001470b23 in fix_upper_expr (root=0x7f44dd7e4060, node=0x7f44dd70a4e8, subplan_itlist=0x7f44dd7e29a8, 
+    newvarno=65002, rtoffset=0) at setrefs.cpp:2164
+#7  0x000000000146df11 in set_indexonlyscan_references (root=0x7f44dd7e4060, plan=0x7f44dd7f2af8, rtoffset=0)
+    at setrefs.cpp:1118
+#8  0x000000000146adca in set_plan_refs (root=0x7f44dd7e4060, plan=0x7f44dd7f2af8, rtoffset=0) at setrefs.cpp:359
+---Type <return> to continue, or q <return> to quit---
+#9  0x000000000146e7c6 in set_extensibleplan_references (root=0x7f44dd7e4060, cscan=0x7f44dd709b80, rtoffset=0)
+    at setrefs.cpp:1263
+#10 0x000000000146bcbe in set_plan_refs (root=0x7f44dd7e4060, plan=0x7f44dd709b80, rtoffset=0) at setrefs.cpp:514
+#11 0x000000000146dc1a in set_plan_refs (root=0x7f44dd7e4060, plan=0x7f44dd750d70, rtoffset=0) at setrefs.cpp:1061
+#12 0x000000000146a73a in set_plan_references (root=0x7f44dd7e4060, plan=0x7f44dd750d70) at setrefs.cpp:298
+#13 0x000000000143d157 in standard_planner (parse=0x7f44dd6da288, cursorOptions=0, boundParams=0x0) at planner.cpp:738
+#14 0x00000000014867b5 in pgxc_planner (query=0x7f44dd6da288, cursorOptions=512, boundParams=0x0)
+    at pgxcplan_single.cpp:175
+#15 0x00007f44dcfbb8ec in timescaledb_planner(Query*, int, ParamListInfoData*) ()
+   from /home/lhy/og/install/lib/postgresql/timescaledb-1.7.4.so
+#16 0x000000000143c222 in planner (parse=0x7f44dd6da288, cursorOptions=512, boundParams=0x0) at planner.cpp:406
+#17 0x00000000018df508 in pg_plan_query (querytree=0x7f44dd6da288, cursorOptions=512, boundParams=0x0, 
+    underExplain=true) at postgres.cpp:1401
+#18 0x00000000015dc7c8 in ExplainOneQuery (query=0x7f44dd6da288, into=0x0, es=0x7f44dfeca700, 
+    queryString=0x7f44de0c6060 "EXPLAIN (costs off)    SELECT time FROM metrics_timestamptz WHERE time > '2000-01-15'::date ORDER BY time;", dest=0x9438fa0 <donothingDR>, params=0x0) at explain.cpp:725
+---Type <return> to continue, or q <return> to quit---
+#19 0x00000000015db9a5 in ExplainQuery (stmt=0x7f44de0c9420, 
+    queryString=0x7f44de0c6060 "EXPLAIN (costs off)    SELECT time FROM metrics_timestamptz WHERE time > '2000-01-15'::date ORDER BY time;", params=0x0, dest=0x7f44de3c9dd0, completionTag=0x7f44dfecb6a0 "") at explain.cpp:500
+#20 0x000000000190ae27 in standard_ProcessUtility (processutility_cxt=0x7f44dfecb530, dest=0x7f44de3c9dd0, 
+    sent_to_remote=false, completion_tag=0x7f44dfecb6a0 "", context=PROCESS_UTILITY_TOPLEVEL, isCTAS=false)
+    at utility.cpp:3812
+#21 0x0000000001920323 in pgaudit_ProcessUtility (processutility_cxt=0x7f44dfecb530, dest=0x7f44de3c9dd0, 
+    sentToRemote=false, completionTag=0x7f44dfecb6a0 "", context=PROCESS_UTILITY_TOPLEVEL, isCTAS=false)
+    at auditfuncs.cpp:1428
+#22 0x000000000197f9d0 in hypo_utility_hook (processutility_cxt=0x7f44dfecb530, dest=0x7f44de3c9dd0, 
+    sentToRemote=false, completionTag=0x7f44dfecb6a0 "", context=PROCESS_UTILITY_TOPLEVEL, isCtas=false)
+    at hypopg_index.cpp:167
+#23 0x00007f44dcfc2d01 in timescaledb_ddl_command_start(processutility_context*, _DestReceiver*, bool, char*, ProcessUtilityContext, bool) () from /home/lhy/og/install/lib/postgresql/timescaledb-1.7.4.so
+#24 0x0000000001907370 in ProcessUtility (processutility_cxt=0x7f44dfecb640, dest=0x7f44de3c9dd0, sent_to_remote=false, 
+    completion_tag=0x7f44dfecb6a0 "", context=PROCESS_UTILITY_TOPLEVEL, isCTAS=false) at utility.cpp:1587
+---Type <return> to continue, or q <return> to quit---q
+Quit
+(gdb) p* indexed_tlist
+A syntax error in expression, near `'.
+(gdb) p* itlist
+$12 = {tlist = 0x7f44dd74dd80, num_vars = 1, has_ph_vars = false, has_non_vars = false, return_const = false, vars = {{
+      varno = 2, varattno = 1, resno = 1}}}
+(gdb) bt
+#0  search_indexed_tlist_for_var (var=0x7f44dd70a6a0, itlist=0x7f44dd7e29a8, newvarno=65002, rtoffset=0)
+    at setrefs.cpp:1878
+#1  0x0000000001470b8e in fix_upper_expr_mutator (node=0x7f44dd70a6a0, context=0x7f44dfec9920) at setrefs.cpp:2176
+#2  0x0000000000aec920 in expression_tree_mutator (node=0x7f44dd70a550, 
+    mutator=0x1470b25 <fix_upper_expr_mutator(Node*, fix_upper_expr_context*)>, context=0x7f44dfec9920, isCopy=true)
+    at nodeFuncs.cpp:2722
+#3  0x0000000001470cdd in fix_upper_expr_mutator (node=0x7f44dd70a550, context=0x7f44dfec9920) at setrefs.cpp:2203
+#4  0x0000000000aed108 in expression_tree_mutator (node=0x7f44dd70a4e8, 
+    mutator=0x1470b25 <fix_upper_expr_mutator(Node*, fix_upper_expr_context*)>, context=0x7f44dfec9920, isCopy=true)
+    at nodeFuncs.cpp:2783
+#5  0x0000000001470cdd in fix_upper_expr_mutator (node=0x7f44dd70a4e8, context=0x7f44dfec9920) at setrefs.cpp:2203
+#6  0x0000000001470b23 in fix_upper_expr (root=0x7f44dd7e4060, node=0x7f44dd70a4e8, subplan_itlist=0x7f44dd7e29a8, 
+    newvarno=65002, rtoffset=0) at setrefs.cpp:2164
+#7  0x000000000146df11 in set_indexonlyscan_references (root=0x7f44dd7e4060, plan=0x7f44dd7f2af8, rtoffset=0)
+    at setrefs.cpp:1118
+#8  0x000000000146adca in set_plan_refs (root=0x7f44dd7e4060, plan=0x7f44dd7f2af8, rtoffset=0) at setrefs.cpp:359
+---Type <return> to continue, or q <return> to quit---
+#9  0x000000000146e7c6 in set_extensibleplan_references (root=0x7f44dd7e4060, cscan=0x7f44dd709b80, rtoffset=0)
+    at setrefs.cpp:1263
+#10 0x000000000146bcbe in set_plan_refs (root=0x7f44dd7e4060, plan=0x7f44dd709b80, rtoffset=0) at setrefs.cpp:514
+#11 0x000000000146dc1a in set_plan_refs (root=0x7f44dd7e4060, plan=0x7f44dd750d70, rtoffset=0) at setrefs.cpp:1061
+#12 0x000000000146a73a in set_plan_references (root=0x7f44dd7e4060, plan=0x7f44dd750d70) at setrefs.cpp:298
+#13 0x000000000143d157 in standard_planner (parse=0x7f44dd6da288, cursorOptions=0, boundParams=0x0) at planner.cpp:738
+#14 0x00000000014867b5 in pgxc_planner (query=0x7f44dd6da288, cursorOptions=512, boundParams=0x0)
+    at pgxcplan_single.cpp:175
+#15 0x00007f44dcfbb8ec in timescaledb_planner(Query*, int, ParamListInfoData*) ()
+   from /home/lhy/og/install/lib/postgresql/timescaledb-1.7.4.so
+#16 0x000000000143c222 in planner (parse=0x7f44dd6da288, cursorOptions=512, boundParams=0x0) at planner.cpp:406
+#17 0x00000000018df508 in pg_plan_query (querytree=0x7f44dd6da288, cursorOptions=512, boundParams=0x0, 
+    underExplain=true) at postgres.cpp:1401
+#18 0x00000000015dc7c8 in ExplainOneQuery (query=0x7f44dd6da288, into=0x0, es=0x7f44dfeca700, 
+    queryString=0x7f44de0c6060 "EXPLAIN (costs off)    SELECT time FROM metrics_timestamptz WHERE time > '2000-01-15'::date ORDER BY time;", dest=0x9438fa0 <donothingDR>, params=0x0) at explain.cpp:725
+---Type <return> to continue, or q <return> to quit---
+#19 0x00000000015db9a5 in ExplainQuery (stmt=0x7f44de0c9420, 
+    queryString=0x7f44de0c6060 "EXPLAIN (costs off)    SELECT time FROM metrics_timestamptz WHERE time > '2000-01-15'::date ORDER BY time;", params=0x0, dest=0x7f44de3c9dd0, completionTag=0x7f44dfecb6a0 "") at explain.cpp:500
+#20 0x000000000190ae27 in standard_ProcessUtility (processutility_cxt=0x7f44dfecb530, dest=0x7f44de3c9dd0, 
+    sent_to_remote=false, completion_tag=0x7f44dfecb6a0 "", context=PROCESS_UTILITY_TOPLEVEL, isCTAS=false)
+    at utility.cpp:3812
+#21 0x0000000001920323 in pgaudit_ProcessUtility (processutility_cxt=0x7f44dfecb530, dest=0x7f44de3c9dd0, 
+    sentToRemote=false, completionTag=0x7f44dfecb6a0 "", context=PROCESS_UTILITY_TOPLEVEL, isCTAS=false)
+    at auditfuncs.cpp:1428
+#22 0x000000000197f9d0 in hypo_utility_hook (processutility_cxt=0x7f44dfecb530, dest=0x7f44de3c9dd0, 
+    sentToRemote=false, completionTag=0x7f44dfecb6a0 "", context=PROCESS_UTILITY_TOPLEVEL, isCtas=false)
+    at hypopg_index.cpp:167
+#23 0x00007f44dcfc2d01 in timescaledb_ddl_command_start(processutility_context*, _DestReceiver*, bool, char*, ProcessUtilityContext, bool) () from /home/lhy/og/install/lib/postgresql/timescaledb-1.7.4.so
+#24 0x0000000001907370 in ProcessUtility (processutility_cxt=0x7f44dfecb640, dest=0x7f44de3c9dd0, sent_to_remote=false, 
+    completion_tag=0x7f44dfecb6a0 "", context=PROCESS_UTILITY_TOPLEVEL, isCTAS=false) at utility.cpp:1587
+---Type <return> to continue, or q <return> to quit---
+#25 0x00000000019020d1 in PortalRunUtility (portal=0x7f44dd626060, utilityStmt=0x7f44de0c9420, isTopLevel=true, 
+    dest=0x7f44de3c9dd0, completionTag=0x7f44dfecb6a0 "") at pquery.cpp:1734
+#26 0x00000000019019ae in FillPortalStore (portal=0x7f44dd626060, isTopLevel=true) at pquery.cpp:1528
+#27 0x0000000001900670 in PortalRun (portal=0x7f44dd626060, count=9223372036854775807, isTopLevel=true, 
+    dest=0x7f44de0c9538, altdest=0x7f44de0c9538, completionTag=0x7f44dfecba70 "") at pquery.cpp:1144
+#28 0x00000000018e316f in exec_simple_query (
+    query_string=0x7f44de0c6060 "EXPLAIN (costs off)    SELECT time FROM metrics_timestamptz WHERE time > '2000-01-15'::date ORDER BY time;", messageType=QUERY_MESSAGE, msg=0x7f44dfecbe50) at postgres.cpp:3043
+#29 0x00000000018f2443 in PostgresMain (argc=1, argv=0x7f44debf7b78, dbname=0x7f44debf6a88 "test1", 
+    username=0x7f44debf6a40 "lhy") at postgres.cpp:9265
+#30 0x000000000182afe1 in BackendRun (port=0x7f44dfecd310) at postmaster.cpp:9599
+#31 0x000000000183ceb3 in GaussDbThreadMain<(knl_thread_role)1> (arg=0x7f4537de6fd8) at postmaster.cpp:14202
+
+#32 0x000000000183845b in InternalThreadFunc (args=0x7f4537de6fd8) at postmaster.cpp:14832
+#33 0x00000000023ccd1c in ThreadStarterFunc (arg=0x7f4537de6fc8) at gs_thread.cpp:380
+#34 0x00007f4618043ea5 in start_thread (arg=0x7f44dfeff700) at pthread_create.c:307
+#35 0x00007f4617d6cb0d in clone () from /lib64/libc.so.6
