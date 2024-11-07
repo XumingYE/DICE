@@ -45,7 +45,7 @@ struct DATA_IO {
 	~DATA_IO(){
 		for (auto& chunk : trace) {
 			if (chunk.data != nullptr) {
-				delete[] chunk.data;
+				free(chunk.data);
 				chunk.data = nullptr;
 			}
 		}
